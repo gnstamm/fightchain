@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FightChain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:   #0c0b0f;
+      --bg2:  #13121a;
+      --bg3:  #1c1b26;
+      --bg4:  #252432;
+      --border:     #2a2838;
+      --border-mid: #3d3b52;
+      --border-hot: #e8281e;
+      --text:       #ece9e0;
+      --text-dim:   #7e7b90;
+      --text-faint: #38364a;
+      --red:        #e8281e;
+      --red-bright: #ff4038;
+      --red-glow:   rgba(232,40,30,0.28);
+      --gold:       #f0b429;
+      --gold-dim:   rgba(240,180,41,0.10);
+      --gold-glow:  rgba(240,180,41,0.35);
+      --green:      #27c76a;
+      --blue:       #4f8ef7;
+      --tier-prospect:  #3d9e6a;
+      --tier-contender: #3878d4;
+      --tier-elite:     #8b5cf6;
+      --tier-champion:  #f0b429;
+      --tier-legendary: #e8281e;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-ui:      'Barlow Condensed', sans-serif;
+      --font-body:    'Barlow', sans-serif;
+      --header-h: 70px;
+      --nav-h:    54px;
+      --cut: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.55;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 3px);
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.35;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 30% at 50% -5%, rgba(232,40,30,0.10) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: var(--header-h);
+      background: rgba(12,11,15,0.96);
+      backdrop-filter: blur(16px);
+      border-top: 2px solid var(--red);
+      border-bottom: 1px solid var(--border-mid);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      gap: 24px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-display);
+      font-size: 32px;
+      letter-spacing: 4px;
+      color: var(--text);
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .logo-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: var(--red);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      box-shadow: 0 0 14px var(--red-glow);
+    }
+
+    .logo-icon svg { width: 18px; height: 18px; fill: #fff; }
+    .logo em { color: var(--red); font-style: normal; text-shadow: 0 0 20px var(--red-glow); }
+
+    .header-right { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+
+    .yoda-balance {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      background: var(--gold-dim);
+      border: 1px solid rgba(240,180,41,0.3);
+      clip-path: polygon(var(--cut) 0%, 100% 0%, 100% 100%, 0% 100%);
+      padding: 6px 14px 6px 18px;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--gold);
+    }
+    .yoda-balance.visible { display: flex; }
+
+    .wallet-pill {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg3);
+      border: 1px solid var(--border-mid);
+      clip-path: polygon(var(--cut) 0%, 100% 0%, calc(100% - var(--cut)) 100%, 0% 100%);
+      padding: 6px 16px;
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+    .wallet-pill.visible { display: flex; }
+
+    .wallet-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      flex-shrink: 0;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    #btn-connect {
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: var(--red);
+      color: #fff;
+      border: none;
+      padding: 10px 26px;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+      clip-path: polygon(var(--cut) 0%, 100% 0%, calc(100% - var(--cut)) 100%, 0% 100%);
+    }
+    #btn-connect:hover { background: #bf1f16; box-shadow: 0 0 22px var(--red-glow); }
+    #btn-connect.hidden { display: none; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: var(--header-h);
+      z-index: 199;
+      height: var(--nav-h);
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      padding: 0 28px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    nav::-webkit-scrollbar { display: none; }
+
+    .nav-tab {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex: 1;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      padding: 0 12px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      user-select: none;
+      position: relative;
+      min-width: 0;
+    }
+    .nav-tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+    .nav-tab.active { color: var(--red); border-bottom-color: var(--red); background: rgba(232,40,30,0.06); }
+    .nav-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 4px solid var(--bg);
+    }
+    .nav-tab .tab-icon { font-size: 14px; }
+    #tab-owner { display: none; }
+    #tab-owner.visible { display: flex; }
+
+    /* ── MAIN ── */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 36px 28px 100px;
+    }
+
+    .section { display: none; }
+    .section.active { display: block; animation: fadeUp 0.2s ease; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 48px;
+      letter-spacing: 4px;
+      line-height: 1;
+      color: var(--text);
+      padding-left: 16px;
+      border-left: 4px solid var(--red);
+    }
+    .section-title em { color: var(--red); font-style: normal; }
+
+    .section-sub {
+      margin-top: 8px;
+      padding-left: 20px;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+    }
+
+    /* ── FIGHTER GRID ── */
+    .fighter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── FIGHTER CARD ── */
+    .fighter-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      overflow: visible;
+      position: relative;
+      transition: border-color 0.2s, transform 0.18s, box-shadow 0.2s;
+    }
+    .fighter-card:hover {
+      border-color: var(--border-mid);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px var(--border-mid);
+    }
+    .fighter-card::before, .fighter-card::after {
+      content: '';
+      position: absolute;
+      width: 12px; height: 12px;
+      border-color: var(--red);
+      border-style: solid;
+      z-index: 2;
+    }
+    .fighter-card::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+    .fighter-card::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+    .card-tier-bar { height: 3px; width: 100%; }
+    .bar-prospect  { background: var(--tier-prospect); }
+    .bar-contender { background: var(--tier-contender); }
+    .bar-elite     { background: var(--tier-elite); }
+    .bar-champion  { background: var(--tier-champion); }
+    .bar-legendary { background: linear-gradient(90deg, var(--red), var(--gold)); }
+
+    .card-silhouette {
+      height: 130px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg3);
+      position: relative;
+      overflow: hidden;
+    }
+    .card-silhouette::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 0.4;
+    }
+    .card-silhouette::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 50px;
+      background: linear-gradient(to top, var(--bg2), transparent);
+    }
+
+    .silhouette-svg { width: 90px; height: 110px; opacity: 0.6; filter: drop-shadow(0 0 16px currentColor); position: relative; z-index: 1; }
+    .sil-prospect  { color: var(--tier-prospect); }
+    .sil-contender { color: var(--tier-contender); }
+    .sil-elite     { color: var(--tier-elite); }
+    .sil-champion  { color: var(--tier-champion); }
+    .sil-legendary { color: var(--red-bright); opacity: 0.75 !important; }
+
+    .card-body { padding: 14px 16px; }
+
+    .card-top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+
+    .fighter-id-label { font-family: var(--font-ui); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint); }
+
+    .tier-badge {
+      font-family: var(--font-ui);
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 2px 10px 2px 8px;
+      border: 1px solid;
+      clip-path: polygon(0% 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+    }
+    .badge-prospect  { color: var(--tier-prospect);  border-color: var(--tier-prospect);  background: rgba(61,158,106,0.12); }
+    .badge-contender { color: var(--tier-contender); border-color: var(--tier-contender); background: rgba(56,120,212,0.12); }
+    .badge-elite     { color: #b09af8;               border-color: var(--tier-elite);     background: rgba(139,92,246,0.12); }
+    .badge-champion  { color: var(--gold);            border-color: var(--gold);           background: var(--gold-dim); }
+    .badge-legendary { color: var(--red-bright);      border-color: var(--red);            background: var(--red-glow); }
+
+    .fighter-name { font-family: var(--font-display); font-size: 26px; letter-spacing: 2px; line-height: 1; margin: 4px 0 8px; }
+
+    .card-overall-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 8px; }
+    .overall-num { font-family: var(--font-display); font-size: 42px; color: var(--red); line-height: 1; text-shadow: 0 0 18px var(--red-glow); }
+    .overall-label { font-family: var(--font-ui); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); }
+
+    .card-record { font-family: var(--font-ui); font-size: 12px; color: var(--text-dim); letter-spacing: 0.5px; margin-bottom: 10px; }
+    .card-record .wins   { color: var(--green); font-weight: 700; }
+    .card-record .losses { color: var(--red);   font-weight: 700; }
+
+    .card-price-row { display: flex; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .card-price-row::before { content: '◆'; font-size: 7px; color: var(--gold); opacity: 0.6; }
+    .price-num { font-family: var(--font-display); font-size: 22px; color: var(--gold); letter-spacing: 1px; }
+    .price-label { font-family: var(--font-ui); font-size: 11px; color: var(--text-dim); letter-spacing: 0.5px; text-transform: uppercase; }
+
+    .card-footer { padding: 10px 16px 14px; display: flex; gap: 8px; flex-wrap: wrap; background: rgba(0,0,0,0.15); border-top: 1px solid var(--border); }
+
+    /* ── STAT BARS ── */
+    .stat-bars { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+    .stat-row  { display: flex; align-items: center; gap: 8px; }
+    .stat-name { font-family: var(--font-ui); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); width: 76px; flex-shrink: 0; }
+    .stat-bar-track { flex: 1; height: 6px; background: var(--bg4); box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
+    .stat-bar-fill { height: 100%; background: linear-gradient(90deg, var(--red), var(--red-bright)); transition: width 0.6s cubic-bezier(.4,0,.2,1); box-shadow: 0 0 6px var(--red-glow); }
+    .stat-num { font-family: var(--font-ui); font-size: 12px; font-weight: 700; color: var(--text); width: 26px; text-align: right; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border: none;
+      padding: 9px 20px;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      clip-path: polygon(var(--cut) 0%, 100% 0%, calc(100% - var(--cut)) 100%, 0% 100%);
+    }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-primary   { background: var(--red);   color: #fff; }
+    .btn-primary:hover:not(:disabled)   { background: #bf1f16; box-shadow: 0 0 18px var(--red-glow); }
+    .btn-gold      { background: var(--gold);  color: #0c0b0f; }
+    .btn-gold:hover:not(:disabled)      { background: #d49d20; }
+    .btn-green     { background: var(--green); color: #fff; }
+    .btn-green:hover:not(:disabled)     { background: #1da858; }
+    .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border-mid); clip-path: none; }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--text-dim); background: rgba(255,255,255,0.04); }
+    .btn-danger    { background: transparent; color: var(--red); border: 1px solid var(--red); clip-path: none; }
+    .btn-danger:hover:not(:disabled)    { background: var(--red-glow); }
+    .btn-sm   { padding: 6px 14px; font-size: 11px; }
+    .btn-full { width: 100%; justify-content: center; }
+
+    /* ── FORMS ── */
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-family: var(--font-ui); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
+    .form-input, .form-select {
+      background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+      font-family: var(--font-body); font-size: 14px; padding: 9px 12px;
+      outline: none; width: 100%; transition: border-color 0.15s, box-shadow 0.15s; appearance: none;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--red); box-shadow: 0 0 0 1px var(--red-glow); }
+    .form-select option { background: var(--bg3); color: var(--text); }
+
+    /* ── TOAST ── */
+    #toast-container { position: fixed; bottom: 28px; right: 28px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+    .toast {
+      background: var(--bg3); border: 1px solid var(--border-mid); border-left: 3px solid var(--red);
+      clip-path: polygon(0% 0%, 100% 0%, calc(100% - var(--cut)) 100%, 0% 100%);
+      padding: 12px 24px 12px 16px; font-family: var(--font-ui); font-size: 13px;
+      letter-spacing: 0.5px; color: var(--text); max-width: 340px;
+      animation: toastIn 0.2s ease; pointer-events: auto;
+    }
+    .toast.success { border-left-color: var(--green); }
+    .toast.warn    { border-left-color: var(--gold); }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+    /* ── MODAL ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 500; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border-mid); border-top: 2px solid var(--red);
+      width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto;
+      animation: fadeUp 0.2s ease; position: relative;
+    }
+    .modal::after { content: ''; position: absolute; bottom: -1px; right: -1px; width: 14px; height: 14px; border-right: 2px solid var(--red); border-bottom: 2px solid var(--red); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid var(--border); }
+    .modal-title { font-family: var(--font-display); font-size: 26px; letter-spacing: 3px; }
+    .modal-close { background: none; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; padding: 4px 8px; transition: color 0.15s; }
+    .modal-close:hover { color: var(--red); }
+    .modal-body { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+    .modal-footer { padding: 16px 22px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; background: rgba(0,0,0,0.15); }
+
+    /* ── UTILITY ── */
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 72px 20px; color: var(--text-dim); text-align: center; }
+    .empty-icon  { font-size: 42px; opacity: 0.3; }
+    .empty-title { font-family: var(--font-display); font-size: 24px; letter-spacing: 3px; color: var(--text-faint); }
+    .empty-sub   { font-family: var(--font-ui); font-size: 13px; letter-spacing: 0.5px; }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border-mid); border-top-color: var(--red); border-radius: 50%; animation: spin 0.65s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-row { display: flex; align-items: center; gap: 10px; color: var(--text-dim); font-family: var(--font-ui); font-size: 13px; letter-spacing: 1px; padding: 48px 0; }
+    .info-box { background: var(--bg3); border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 12px 16px; font-family: var(--font-ui); font-size: 13px; color: var(--text-dim); line-height: 1.7; }
+    .info-box.warn    { border-left-color: var(--gold); }
+    .info-box.error   { border-left-color: var(--red); }
+    .info-box.success { border-left-color: var(--green); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+    /* ── CHALLENGE / LISTING ROWS ── */
+    .row-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .data-row {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      display: grid;
+      align-items: center;
+      padding: 16px 20px;
+      gap: 16px;
+      position: relative;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .data-row:hover { border-color: var(--border-mid); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    .data-row::before { content: ''; position: absolute; top: -1px; left: -1px; width: 10px; height: 10px; border-top: 2px solid var(--red); border-left: 2px solid var(--red); }
+
+    /* columns: info | stats | price | actions */
+    .data-row-5 { grid-template-columns: 1fr 1fr 140px 160px auto; }
+    .data-row-4 { grid-template-columns: 1fr 1fr 160px auto; }
+
+    .dr-label { font-family: var(--font-ui); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 2px; }
+    .dr-value { font-family: var(--font-ui); font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: 0.5px; }
+    .dr-value-gold { color: var(--gold); }
+    .dr-value-red  { color: var(--red); }
+    .dr-value-dim  { color: var(--text-dim); font-weight: 400; }
+    .dr-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+    /* ── OWNER PANEL ── */
+    .owner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 800px) { .owner-grid { grid-template-columns: 1fr; } }
+
+    .owner-panel {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-top: 2px solid var(--red);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .owner-panel-title { font-family: var(--font-display); font-size: 22px; letter-spacing: 2px; color: var(--text); }
+
+    /* ── HOUSE RESERVE BAR ── */
+    .reserve-bar-wrap { background: var(--bg4); height: 8px; position: relative; }
+    .reserve-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--red-bright)); box-shadow: 0 0 8px var(--gold-glow); transition: width 0.6s ease; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .data-row-5 { grid-template-columns: 1fr 1fr auto; }
+      .data-row-5 .dr-col-price { display: none; }
+      .data-row-4 { grid-template-columns: 1fr auto; }
+    }
+    @media (max-width: 640px) {
+      header { padding: 0 16px; }
+      nav    { padding: 0 8px; }
+      main   { padding: 24px 16px 80px; }
+      .section-title { font-size: 34px; }
+      .fighter-grid  { grid-template-columns: 1fr 1fr; }
+      .data-row-5, .data-row-4 { grid-template-columns: 1fr auto; }
+      .dr-col-stats, .dr-col-price { display: none; }
+    }
+    @media (max-width: 400px) { .fighter-grid { grid-template-columns: 1fr; } }
+
+    /* ── FIGHT HISTORY MODAL ── */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-row {
+      display: grid;
+      grid-template-columns: 52px 1fr 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      border-left: 3px solid var(--border);
+    }
+
+    .history-row.win  { border-left-color: var(--green); }
+    .history-row.loss { border-left-color: var(--red); }
+
+    .history-result {
+      font-family: var(--font-display);
+      font-size: 18px;
+      letter-spacing: 2px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .history-result.win  { color: var(--green); }
+    .history-result.loss { color: var(--red); }
+
+    .history-opponent {
+      font-family: var(--font-ui);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.5px;
+    }
+
+    .history-type {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .history-score {
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--text-dim);
+      letter-spacing: 0.5px;
+    }
+
+    .history-payout {
+      text-align: right;
+      font-family: var(--font-display);
+      font-size: 16px;
+      letter-spacing: 1px;
+    }
+
+    .history-payout.earned { color: var(--gold); }
+    .history-payout.lost   { color: var(--text-faint); }
+
+    .history-date {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--text-faint);
+      text-align: right;
+      margin-top: 2px;
+    }
+
+    .history-empty {
+      padding: 32px 0;
+      text-align: center;
+      font-family: var(--font-ui);
+      font-size: 14px;
+      color: var(--text-faint);
+      letter-spacing: 1px;
+    }
+
+    /* ═══════════════════════════════════════════
+       FIGHT ARENA
+    ═══════════════════════════════════════════ */
+    #fight-arena {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: #04030a;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+
+    #fight-arena.open { display: flex; }
+
+    /* arena scanlines — heavier than body */
+    #fight-arena::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 3px);
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0.5;
+    }
+
+    /* floor glow */
+    #fight-arena::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 40%;
+      background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(224,53,53,0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ── HUD BAR (top) ── */
+    .arena-hud {
+      position: relative;
+      z-index: 5;
+      width: 100%;
+      padding: 20px 32px 0;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* fighter name */
+    .hud-name {
+      font-family: var(--font-display);
+      font-size: 22px;
+      letter-spacing: 3px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .hud-name.right { text-align: right; }
+
+    /* VS badge */
+    .hud-vs {
+      font-family: var(--font-display);
+      font-size: 28px;
+      letter-spacing: 4px;
+      color: var(--red);
+      text-shadow: 0 0 20px var(--red-glow);
+      text-align: center;
+    }
+
+    /* health bar container */
+    .hud-bar-wrap {
+      margin-top: 8px;
+      height: 18px;
+      background: #0a0912;
+      border: 1px solid var(--border-mid);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hud-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.15s linear;
+      position: relative;
+    }
+
+    /* left fighter — green → yellow → red as health drops */
+    .hud-bar-left  { background: linear-gradient(90deg, #16a34a, #22c55e); float: right; }
+    .hud-bar-right { background: linear-gradient(90deg, #22c55e, #16a34a); }
+
+    /* bar damage flash */
+    .hud-bar-fill.hit {
+      animation: barHit 0.12s ease;
+    }
+    @keyframes barHit {
+      0%   { filter: brightness(1); }
+      50%  { filter: brightness(2.5) saturate(0); }
+      100% { filter: brightness(1); }
+    }
+
+    /* health % text */
+    .hud-hp {
+      font-family: var(--font-display);
+      font-size: 13px;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .hud-hp.right { text-align: right; }
+
+    /* round / timer label */
+    .hud-round {
+      font-family: var(--font-display);
+      font-size: 16px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    /* ── ARENA FLOOR ── */
+    .arena-floor {
+      position: relative;
+      z-index: 4;
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 60px;
+      gap: 0;
+    }
+
+    /* floor grid lines */
+    .arena-floor::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    /* center line */
+    .arena-center-line {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 50%;
+      width: 1px;
+      background: rgba(224,53,53,0.15);
+      pointer-events: none;
+    }
+
+/* ── FIGHTER SILHOUETTES ── */
+    .arena-fighter {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      width: 260px;
+    }
+
+   .arena-silhouette {
+      width: 220px;
+      height: 320px;
+      overflow: visible;
+      opacity: 0.88;
+      filter: drop-shadow(0 0 28px currentColor);
+    }
+
+    /* left fighter jabs right */
+    .arena-fighter.left.attacking {
+      animation: jabLeft 0.44s cubic-bezier(.15,0,.3,1);
+    }
+    @keyframes jabLeft {
+      0%   { transform: translateX(0)   rotate(0deg); }
+      35%  { transform: translateX(44px) rotate(5deg); }
+      65%  { transform: translateX(24px) rotate(2deg); }
+      100% { transform: translateX(0)   rotate(0deg); }
+    }
+
+    /* right fighter jabs left */
+    .arena-fighter.right.attacking {
+      animation: jabRight 0.44s cubic-bezier(.15,0,.3,1);
+    }
+    @keyframes jabRight {
+      0%   { transform: translateX(0)    rotate(0deg);  }
+      35%  { transform: translateX(-44px) rotate(-5deg); }
+      65%  { transform: translateX(-24px) rotate(-2deg); }
+      100% { transform: translateX(0)    rotate(0deg);  }
+    }
+
+    /* defender rocks back on hit */
+    .arena-fighter.left.taking-hit {
+      animation: recoilLeft 0.42s cubic-bezier(.1,0,.3,1);
+    }
+    @keyframes recoilLeft {
+      0%   { transform: translateX(0)    rotate(0deg);  }
+      25%  { transform: translateX(-26px) rotate(-7deg); }
+      60%  { transform: translateX(-10px) rotate(-2deg); }
+      100% { transform: translateX(0)    rotate(0deg);  }
+    }
+
+    .arena-fighter.right.taking-hit {
+      animation: recoilRight 0.42s cubic-bezier(.1,0,.3,1);
+    }
+    @keyframes recoilRight {
+      0%   { transform: translateX(0)   rotate(0deg); }
+      25%  { transform: translateX(26px) rotate(7deg); }
+      60%  { transform: translateX(10px) rotate(2deg); }
+      100% { transform: translateX(0)   rotate(0deg); }
+    }
+
+    /* white flash on the silhouette when hit */
+    .arena-fighter.taking-hit .arena-silhouette {
+      animation: silFlash 0.42s ease;
+    }
+    @keyframes silFlash {
+      0%   { filter: drop-shadow(0 0 18px currentColor) brightness(1);   opacity: 0.88; }
+      20%  { filter: drop-shadow(0 0 50px white)        brightness(5);   opacity: 1;    }
+      55%  { filter: drop-shadow(0 0 26px currentColor) brightness(1.6); opacity: 0.92; }
+      100% { filter: drop-shadow(0 0 18px currentColor) brightness(1);   opacity: 0.88; }
+    }
+
+    /* ── HIT FLASH OVERLAY ── */
+    #arena-flash {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 8;
+      opacity: 0;
+      transition: opacity 0.05s;
+    }
+
+    #arena-flash.pop { animation: flashPop 0.18s ease forwards; }
+
+    @keyframes flashPop {
+      0%   { opacity: 0.18; background: #fff; }
+      100% { opacity: 0; }
+    }
+
+    #hit-text.pop { animation: hitTextPop 0.45s cubic-bezier(.2,1.4,.4,1) forwards; }
+
+    @keyframes hitTextPop {
+      0%   { opacity: 0; transform: translateX(-50%) scale(0.5); }
+      30%  { opacity: 1; transform: translateX(-50%) scale(1.1); }
+      70%  { opacity: 1; transform: translateX(-50%) scale(1); }
+      100% { opacity: 0; transform: translateX(-50%) scale(0.9); }
+    }
+
+    /* ── SCREEN SHAKE ── */
+    #fight-arena.shake { animation: arenaShake 0.2s ease; }
+
+    @keyframes arenaShake {
+      0%   { transform: translate(0,0); }
+      20%  { transform: translate(-6px, 3px); }
+      40%  { transform: translate(6px, -3px); }
+      60%  { transform: translate(-4px, 2px); }
+      80%  { transform: translate(4px, -2px); }
+      100% { transform: translate(0,0); }
+    }
+
+    /* ── INTRO COUNTDOWN ── */
+    #arena-countdown {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .countdown-num {
+      font-family: var(--font-display);
+      font-size: 180px;
+      letter-spacing: 8px;
+      color: var(--red);
+      text-shadow: 0 0 60px var(--red-glow), 0 0 120px var(--red-glow);
+      animation: countPop 0.8s cubic-bezier(.2,1.4,.4,1) forwards;
+    }
+
+    .countdown-fight {
+      font-family: var(--font-display);
+      font-size: 100px;
+      letter-spacing: 12px;
+      color: #fff;
+      text-shadow: 0 0 40px var(--red-glow);
+      animation: countPop 0.8s cubic-bezier(.2,1.4,.4,1) forwards;
+    }
+
+    @keyframes countPop {
+      0%   { opacity: 0; transform: scale(2); }
+      30%  { opacity: 1; transform: scale(0.95); }
+      70%  { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.8); }
+    }
+
+    /* ── KO / WIN SCREEN ── */
+    #arena-result {
+      display: none;
+      position: absolute;
+      inset: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 15;
+      background: rgba(4,3,10,0.88);
+      gap: 16px;
+      animation: fadeUp 0.3s ease;
+    }
+
+    #arena-result.open { display: flex; }
+
+    .result-ko {
+      font-family: var(--font-display);
+      font-size: 120px;
+      letter-spacing: 12px;
+      color: var(--red);
+      text-shadow: 0 0 60px var(--red-glow), 0 0 120px var(--red-glow);
+      line-height: 1;
+      animation: koPop 0.5s cubic-bezier(.2,1.6,.4,1) forwards;
+    }
+
+    @keyframes koPop {
+      0%   { transform: scale(3); opacity: 0; }
+      60%  { transform: scale(0.95); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .result-winner {
+      font-family: var(--font-display);
+      font-size: 32px;
+      letter-spacing: 5px;
+      color: var(--gold);
+      text-shadow: 0 0 30px var(--gold-glow);
+    }
+
+    .result-payout {
+      font-family: var(--font-ui);
+      font-size: 18px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+    }
+
+    .result-payout span { color: var(--gold); font-weight: 700; }
+
+    .result-continue {
+      margin-top: 24px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 8h-1V6a3 3 0 00-3-3h-1a3 3 0 00-2.83 2A3 3 0 008 8H7a3 3 0 00-3 3v2a8 8 0 0016 0v-2a3 3 0 00-2-2.83V8zm0 5a6 6 0 01-12 0v-2a1 1 0 011-1h10a1 1 0 011 1v2z"/>
+        </svg>
+      </div>
+      FIGHT<em>CHAIN</em>
+    </div>
+    <div class="header-right">
+      <div class="yoda-balance" id="yoda-balance">
+        <span>⚡</span><span id="yoda-bal-text">0 YODA</span>
+      </div>
+      <div class="wallet-pill" id="wallet-pill">
+        <span class="wallet-dot"></span>
+        <span id="wallet-addr-text">0x0000...0000</span>
+      </div>
+      <button id="btn-connect">Connect Wallet</button>
+    </div>
+  </header>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-tab active" data-tab="inventory"><span class="tab-icon">🏪</span> Inventory</div>
+    <div class="nav-tab" data-tab="my-fighters"><span class="tab-icon">🥊</span> My Fighters</div>
+    <div class="nav-tab" data-tab="marketplace"><span class="tab-icon">💰</span> Marketplace</div>
+    <div class="nav-tab" data-tab="challenges"><span class="tab-icon">⚔️</span> Challenges</div>
+    <div class="nav-tab" data-tab="house"><span class="tab-icon">🏠</span> House Fighters</div>
+    <div class="nav-tab" id="tab-owner" data-tab="owner"><span class="tab-icon">🔧</span> Owner Panel</div>
+  </nav>
+
+  <!-- MAIN -->
+  <main>
+    <section class="section active" id="section-inventory">
+      <div class="section-header">
+        <div>
+          <div class="section-title">HOUSE <em>INVENTORY</em></div>
+          <div class="section-sub">Browse and purchase fighters directly from the house</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-inventory">↺ Refresh</button>
+      </div>
+      <div id="inventory-content"></div>
+    </section>
+
+    <section class="section" id="section-my-fighters">
+      <div class="section-header">
+        <div>
+          <div class="section-title">MY <em>FIGHTERS</em></div>
+          <div class="section-sub">Your roster — view stats, list for sale, or post a challenge</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-my">↺ Refresh</button>
+      </div>
+      <div id="my-fighters-content"></div>
+    </section>
+
+    <section class="section" id="section-marketplace">
+      <div class="section-header">
+        <div>
+          <div class="section-title">MARKET<em>PLACE</em></div>
+          <div class="section-sub">Secondary market — buy fighters from other players (5% fee)</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-market">↺ Refresh</button>
+      </div>
+      <div id="marketplace-content"></div>
+    </section>
+
+    <section class="section" id="section-challenges">
+      <div class="section-header">
+        <div>
+          <div class="section-title">CHALLENGE <em>BOARD</em></div>
+          <div class="section-sub">Open peer challenges — accept a fight or post your own</div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-post-challenge-open">+ Post Challenge</button>
+      </div>
+      <div id="challenges-content"></div>
+    </section>
+
+    <section class="section" id="section-house">
+      <div class="section-header">
+        <div>
+          <div class="section-title">HOUSE <em>FIGHTERS</em></div>
+          <div class="section-sub">Challenge the house anytime — win from the house reserve</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-house">↺ Refresh</button>
+      </div>
+      <div id="house-content"></div>
+    </section>
+
+    <section class="section" id="section-owner">
+      <div class="section-header">
+        <div>
+          <div class="section-title">OWNER <em>PANEL</em></div>
+          <div class="section-sub">Admin tools — mint fighters, manage house reserve</div>
+        </div>
+      </div>
+      <div id="owner-content"></div>
+    </section>
+  </main>
+
+  <!-- FIGHT ARENA -->
+  <div id="fight-arena">
+    <!-- flash overlay -->
+    <div id="arena-flash"></div>
+    <!-- hit text -->
+    <div id="hit-text">HIT</div>
+    <!-- countdown -->
+    <div id="arena-countdown"></div>
+    <!-- result screen -->
+    <div id="arena-result">
+      <div class="result-ko" id="result-ko-text">KO</div>
+      <div class="result-winner" id="result-winner-text"></div>
+      <div class="result-payout" id="result-payout-text"></div>
+      <button class="btn btn-primary result-continue" onclick="closeArena()">Continue</button>
+    </div>
+    <!-- HUD -->
+    <div class="arena-hud">
+      <!-- left fighter -->
+      <div>
+        <div class="hud-name" id="hud-name-left">FIGHTER A</div>
+        <div class="hud-bar-wrap">
+          <div class="hud-bar-fill hud-bar-left" id="hud-bar-left" style="width:100%"></div>
+        </div>
+        <div class="hud-hp" id="hud-hp-left">100%</div>
+      </div>
+      <!-- center -->
+      <div>
+        <div class="hud-vs">VS</div>
+        <div class="hud-round" id="hud-round">FIGHT</div>
+      </div>
+      <!-- right fighter -->
+      <div>
+        <div class="hud-name right" id="hud-name-right">FIGHTER B</div>
+        <div class="hud-bar-wrap">
+          <div class="hud-bar-fill hud-bar-right" id="hud-bar-right" style="width:100%"></div>
+        </div>
+        <div class="hud-hp right" id="hud-hp-right">100%</div>
+      </div>
+    </div>
+    <!-- arena floor with fighters -->
+    <div class="arena-floor">
+      <div class="arena-center-line"></div>
+      <!-- left fighter -->
+      <!-- left fighter -->
+      <!-- left fighter -->
+      <div class="arena-fighter left" id="arena-fighter-left">
+        <div id="arena-sil-left"></div>
+      </div>
+      <!-- right fighter -->
+      <div class="arena-fighter right" id="arena-fighter-right">
+        <div id="arena-sil-right"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">—</div>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body"   id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script>
+  /* ── CONFIG ── */
+  const CONFIG = {
+    FIGHTCHAIN_ADDRESS: '0x8f38661C0f0cc530020Bb4054B24E843F5432B77', // TODO after deploy
+    YODA_ADDRESS:       '0xbd27d0b7F9fedb5A2A2C3ceF5dC9c70f3CF64Af2', // TODO after deploy
+  };
+
+  /* ── ABIs ── */
+  const FIGHTCHAIN_ABI = [
+    'function getInventory() view returns (uint256[])',
+    'function getFighterInfo(uint256) view returns (address currentOwner, bool isHouse, uint256 overall, string tier, uint256 price, int256 totalEarnings, uint256 totalFights)',
+    'function getFighterStats(uint256) view returns (string name, uint256 striking, uint256 grappling, uint256 stamina, uint256 durability, uint256 strength, uint256 speed, uint256 counter)',
+    'function getFightersByOwner(address) view returns (uint256[])',
+    'function getActiveListings() view returns (uint256[])',
+    'function listings(uint256) view returns (uint256 fighterId, address seller, uint256 price, bool active)',
+    'function getOpenChallenges() view returns (uint256[])',
+    'function challenges(uint256) view returns (uint256 challengerFighterId, uint256 opponentFighterId, address challengerOwner, address opponentOwner, uint256 wager, bool active, bool resolved, bool isHouseChallenge)',
+    'function getHouseFighters() view returns (uint256[])',
+    'function houseReserve() view returns (uint256)',
+    'function owner() view returns (address)',
+    'function totalFighters() view returns (uint256)',
+    'function purchaseFromInventory(uint256)',
+    'function listFighter(uint256, uint256)',
+    'function buyFighter(uint256)',
+    'function cancelListing(uint256)',
+    'function postChallenge(uint256, uint256)',
+    'function acceptChallenge(uint256, uint256)',
+    'function cancelChallenge(uint256)',
+    'function challengeHouse(uint256, uint256, uint256)',
+    'function mintToInventory(string)',
+    'function mintBatch(string[])',
+    'function mintHouseFighter(string)',
+    'function fundHouseReserve(uint256)',
+    'function getFighterName(uint256) view returns (string)',
+    'event DuelResolved(uint256 indexed challengeId, address winner, address loser, uint256 challengerScore, uint256 opponentScore, uint256 wagerPaid, bool challengerWonStriking, bool challengerWonGrappling, bool challengerWonSpeed, bool challengerWonCounter, bool challengerWonStrength)',
+    'event HouseChallengeResolved(uint256 indexed challengeId, address indexed player, bool playerWon, uint256 payout)',
+  ];
+
+  const YODA_ABI = [
+    'function balanceOf(address) view returns (uint256)',
+    'function approve(address, uint256) returns (bool)',
+    'function allowance(address, address) view returns (uint256)',
+    'function receiveTokens()',
+  ];
+
+  /* ── STATE ── */
+  const state = { provider: null, signer: null, userAddress: null, isOwner: false, fightchain: null, yoda: null };
+
+  /* ── UTILS ── */
+  function getBracketMin(overall) {
+    if (overall >= 90) return 90;
+    if (overall >= 85) return 85;
+    if (overall >= 75) return 75;
+    return 65;
+  }
+
+  function getBracketLabel(overall) {
+    return getBracketMin(overall) + '+';
+  }
+
+  const fmt   = wei  => ethers.formatUnits(wei, 2);
+  const parse = n    => ethers.parseUnits(String(n), 2);
+  const shortAddr = a    => a ? a.slice(0,6) + '…' + a.slice(-4) : '—';
+  const tierKey   = tier => (tier || '').toLowerCase().trim();
+
+  function toast(msg, type = 'default', duration = 4000) {
+    const el = document.createElement('div');
+    el.className = 'toast' + (type !== 'default' ? ' ' + type : '');
+    el.textContent = msg;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(() => el.remove(), duration);
+  }
+
+  async function waitTx(txPromise, successMsg) {
+    try {
+      toast('Transaction submitted…', 'warn', 12000);
+      const tx = await txPromise;
+      await tx.wait();
+      toast(successMsg || 'Transaction confirmed!', 'success');
+    } catch (err) {
+      toast((err?.reason || err?.shortMessage || err?.message || 'Transaction failed').slice(0,140));
+      throw err;
+    }
+  }
+
+  async function ensureAllowance(amountWei) {
+    const allowance = await state.yoda.allowance(state.userAddress, CONFIG.FIGHTCHAIN_ADDRESS);
+    if (allowance < amountWei) {
+      toast('Approving Yoda spend…', 'warn', 10000);
+      const tx = await state.yoda.approve(CONFIG.FIGHTCHAIN_ADDRESS, ethers.MaxUint256);
+      await tx.wait();
+      toast('Approval confirmed', 'success');
+    }
+  }
+
+  function requireWallet(id) {
+    if (!state.userAddress) {
+      document.getElementById(id).innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔌</div>
+          <div class="empty-title">WALLET NOT CONNECTED</div>
+          <div class="empty-sub">Connect your MetaMask wallet to continue</div>
+        </div>`;
+      return false;
+    }
+    return true;
+  }
+
+  function setLoading(id, msg = 'Loading…') {
+    document.getElementById(id).innerHTML = `<div class="loading-row"><div class="spinner"></div> ${msg}</div>`;
+  }
+
+  /* ── SILHOUETTES ── */
+  const SILHOUETTES = {
+    prospect:  `<svg class="silhouette-svg sil-prospect"  viewBox="0 0 90 110" fill="currentColor"><ellipse cx="45" cy="14" rx="11" ry="13"/><rect x="30" y="28" width="30" height="38" rx="4"/><rect x="14" y="30" width="13" height="32" rx="6"/><rect x="63" y="30" width="13" height="32" rx="6"/><rect x="30" y="66" width="13" height="36" rx="6"/><rect x="47" y="66" width="13" height="36" rx="6"/></svg>`,
+    contender: `<svg class="silhouette-svg sil-contender" viewBox="0 0 90 110" fill="currentColor"><ellipse cx="45" cy="13" rx="12" ry="13"/><rect x="28" y="27" width="34" height="40" rx="4"/><rect x="10" y="22" width="16" height="30" rx="7" transform="rotate(-20 18 37)"/><rect x="64" y="22" width="16" height="30" rx="7" transform="rotate(20 72 37)"/><rect x="29" y="67" width="14" height="35" rx="6"/><rect x="47" y="67" width="14" height="35" rx="6"/></svg>`,
+    elite:     `<svg class="silhouette-svg sil-elite"     viewBox="0 0 90 110" fill="currentColor"><ellipse cx="45" cy="13" rx="12" ry="13"/><rect x="27" y="26" width="36" height="40" rx="4" transform="rotate(-5 45 46)"/><rect x="7" y="18" width="17" height="34" rx="7" transform="rotate(-30 15 35)"/><rect x="65" y="25" width="17" height="28" rx="7" transform="rotate(10 73 39)"/><rect x="28" y="66" width="14" height="36" rx="6"/><rect x="48" y="66" width="14" height="36" rx="6"/></svg>`,
+    champion:  `<svg class="silhouette-svg sil-champion"  viewBox="0 0 90 110" fill="currentColor"><ellipse cx="45" cy="12" rx="13" ry="13"/><rect x="25" y="26" width="40" height="42" rx="4"/><rect x="5" y="24" width="18" height="35" rx="7" transform="rotate(-15 14 41)"/><rect x="67" y="24" width="18" height="35" rx="7" transform="rotate(15 76 41)"/><rect x="22" y="68" width="18" height="34" rx="6" transform="rotate(8 31 85)"/><rect x="50" y="68" width="18" height="34" rx="6" transform="rotate(-8 59 85)"/></svg>`,
+    legendary: `<svg class="silhouette-svg sil-legendary" viewBox="0 0 90 110" fill="currentColor"><ellipse cx="45" cy="11" rx="13" ry="13"/><rect x="26" y="25" width="36" height="38" rx="4" transform="rotate(-8 44 44)"/><rect x="4" y="20" width="18" height="36" rx="7" transform="rotate(-35 13 38)"/><rect x="64" y="22" width="18" height="32" rx="7" transform="rotate(25 73 38)"/><rect x="24" y="63" width="16" height="38" rx="6"/><rect x="48" y="60" width="16" height="38" rx="6" transform="rotate(-40 56 79)"/></svg>`,
+  };
+  const getSilhouette = tier => SILHOUETTES[tierKey(tier)] || SILHOUETTES.prospect;
+
+  /* ── MODAL ── */
+  function openModal(title, bodyHTML, footerHTML = '') {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').innerHTML    = bodyHTML;
+    document.getElementById('modal-footer').innerHTML  = footerHTML;
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === document.getElementById('modal-overlay')) closeModal(); });
+
+  /* ── NAV ROUTING ── */
+  const navTabs     = document.querySelectorAll('.nav-tab');
+  const navSections = document.querySelectorAll('.section');
+
+  function switchTab(tabId) {
+    navTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+    navSections.forEach(s => s.classList.toggle('active', s.id === `section-${tabId}`));
+    ({ inventory: loadInventory, 'my-fighters': loadMyFighters, marketplace: loadMarketplace, challenges: loadChallenges, house: loadHouse, owner: loadOwner }[tabId] || (() => {}))();
+  }
+  navTabs.forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+  /* ── WALLET ── */
+  async function connectWallet() {
+    if (!window.ethereum) { toast('MetaMask not detected — please install it.', 'default', 5000); return; }
+    try {
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const bp      = new ethers.BrowserProvider(window.ethereum);
+      const signer  = await bp.getSigner();
+      const address = await signer.getAddress();
+      state.provider = bp; state.signer = signer; state.userAddress = address;
+      state.fightchain = new ethers.Contract(CONFIG.FIGHTCHAIN_ADDRESS, FIGHTCHAIN_ABI, signer);
+      state.yoda       = new ethers.Contract(CONFIG.YODA_ADDRESS,       YODA_ABI,       signer);
+      document.getElementById('wallet-addr-text').textContent = shortAddr(address);
+      document.getElementById('wallet-pill').classList.add('visible');
+      document.getElementById('btn-connect').classList.add('hidden');
+      await refreshYodaBalance();
+      await checkOwner();
+      toast('Wallet connected', 'success');
+      const active = document.querySelector('.nav-tab.active');
+      if (active) switchTab(active.dataset.tab);
+    } catch (err) { toast(err.message || 'Connection failed'); }
+  }
+
+  async function refreshYodaBalance() {
+    if (!state.yoda || !state.userAddress) return;
+    try {
+      const bal = await state.yoda.balanceOf(state.userAddress);
+      document.getElementById('yoda-bal-text').textContent = parseFloat(fmt(bal)).toFixed(2) + ' YODA';
+      document.getElementById('yoda-balance').classList.add('visible');
+    } catch (_) {}
+  }
+
+  async function checkOwner() {
+    if (!state.fightchain) return;
+    try {
+      const o = await state.fightchain.owner();
+      state.isOwner = o.toLowerCase() === state.userAddress.toLowerCase();
+      document.getElementById('tab-owner').classList.toggle('visible', state.isOwner);
+    } catch (_) {}
+  }
+
+  document.getElementById('btn-connect').addEventListener('click', connectWallet);
+  if (window.ethereum) {
+    window.ethereum.on('accountsChanged', () => window.location.reload());
+    window.ethereum.on('chainChanged',    () => window.location.reload());
+  }
+
+  /* ════════════════════════════════════════════
+     MOCK DATA — set MOCK_MODE=false after deploy
+  ════════════════════════════════════════════ */
+  const MOCK_MODE = false; // TODO: flip to false after deploying
+
+  const MOCK = {
+    yodaBalance: '142.50',
+    walletAddr:  '0xMock…User',
+
+    // Inventory — freshly minted, always 0 fights
+    inventory: [
+      { id:1, info:{ overall:62n, tier:'Prospect',   price:5000000000000000000n,  totalEarnings:0n, totalFights:0n }, stats:{ name:'Baby Shark',  striking:55, grappling:44, stamina:61, durability:60, strength:58, speed:65, counter:50 } },
+      { id:2, info:{ overall:68n, tier:'Contender',  price:8000000000000000000n,  totalEarnings:0n, totalFights:0n }, stats:{ name:'Street Dog',  striking:60, grappling:58, stamina:66, durability:63, strength:62, speed:60, counter:55 } },
+      { id:3, info:{ overall:71n, tier:'Contender',  price:8000000000000000000n,  totalEarnings:0n, totalFights:0n }, stats:{ name:'Snake Eyes',  striking:78, grappling:65, stamina:70, durability:72, strength:66, speed:74, counter:69 } },
+      { id:4, info:{ overall:77n, tier:'Elite',      price:10000000000000000000n, totalEarnings:0n, totalFights:0n }, stats:{ name:'Iron Will',   striking:74, grappling:70, stamina:75, durability:74, strength:71, speed:69, counter:72 } },
+      { id:5, info:{ overall:86n, tier:'Champion',   price:13000000000000000000n, totalEarnings:0n, totalFights:0n }, stats:{ name:'Ghost',       striking:83, grappling:77, stamina:80, durability:76, strength:75, speed:81, counter:78 } },
+      { id:6, info:{ overall:92n, tier:'Legendary',  price:15000000000000000000n, totalEarnings:0n, totalFights:0n }, stats:{ name:'The Reaper',  striking:91, grappling:84, stamina:88, durability:85, strength:87, speed:83, counter:86 } },
+    ],
+
+    // Owned — these have fight history
+    owned: [
+      { id:7, info:{ overall:82n, tier:'Elite',     price:10000000000000000000n, totalEarnings:340000000000000000000n,  totalFights:14n }, stats:{ name:'Crimson Fist', striking:86, grappling:80, stamina:82, durability:79, strength:83, speed:80, counter:77 } },
+      { id:8, info:{ overall:92n, tier:'Legendary', price:15000000000000000000n, totalEarnings:2100000000000000000000n, totalFights:38n }, stats:{ name:'Crimson King', striking:96, grappling:92, stamina:95, durability:91, strength:93, speed:94, counter:90 } },
+    ],
+
+    // Listings — full info so marketplace can show cards
+    listings: [
+      { listingId:1, fighterId:9,  seller:'0xaBcD…1234', price:12000000000000000000n, info:{ overall:76n, tier:'Elite',    totalFights:9n,  totalEarnings:180000000000000000000n  }, stats:{ name:'Venom' } },
+      { listingId:2, fighterId:10, seller:'0x9999…AAAA', price:6000000000000000000n,  info:{ overall:66n, tier:'Contender',totalFights:3n,  totalEarnings:0n                      }, stats:{ name:'Knuckles' } },
+      { listingId:3, fighterId:11, seller:'0xDEAD…BEEF', price:22000000000000000000n, info:{ overall:88n, tier:'Champion', totalFights:31n, totalEarnings:1200000000000000000000n }, stats:{ name:'Black Mamba' } },
+    ],
+
+    challenges: [
+      { challengeId:1, challengerFighterId:12, challengerOwner:'0xAAAA…1111', wager:5000000000000000000n,  challengerTier:'Contender', challengerOverall:68 },
+      { challengeId:2, challengerFighterId:13, challengerOwner:'0xBBBB…2222', wager:10000000000000000000n, challengerTier:'Elite',     challengerOverall:77 },
+      { challengeId:3, challengerFighterId:14, challengerOwner:'0xCCCC…3333', wager:3000000000000000000n,  challengerTier:'Prospect',  challengerOverall:61 },
+    ],
+
+    // House fighters — one per bracket: 65+, 75+, 85+, 90+
+    houseFighters: [
+      { id:20, info:{ overall:68n, tier:'Contender', totalFights:44n,  totalEarnings:0n } },
+      { id:21, info:{ overall:78n, tier:'Elite',     totalFights:88n,  totalEarnings:0n } },
+      { id:22, info:{ overall:87n, tier:'Champion',  totalFights:120n, totalEarnings:0n } },
+      { id:23, info:{ overall:93n, tier:'Legendary', totalFights:200n, totalEarnings:0n } },
+    ],
+
+    houseReserve: '1250.00',
+
+    // Fight history per fighter ID — used in mock mode
+    fightHistory: {
+      7: [
+        { type: 'peer',  result: 'win',  opponent: 'Venom',       score: '412 vs 388', payout: '9.50',  date: '2 days ago' },
+        { type: 'house', result: 'win',  opponent: 'House Fighter',score: '398 vs 341', payout: '19.00', date: '4 days ago' },
+        { type: 'peer',  result: 'loss', opponent: 'Black Mamba',  score: '355 vs 421', payout: '0',     date: '1 week ago' },
+        { type: 'house', result: 'loss', opponent: 'House Fighter',score: '310 vs 390', payout: '0',     date: '2 weeks ago' },
+      ],
+      8: [
+        { type: 'peer',  result: 'win',  opponent: 'Iron Will',    score: '445 vs 312', payout: '9.50',  date: '1 day ago' },
+        { type: 'peer',  result: 'win',  opponent: 'Ghost',        score: '441 vs 388', payout: '14.25', date: '3 days ago' },
+        { type: 'house', result: 'win',  opponent: 'House Fighter',score: '460 vs 390', payout: '28.50', date: '5 days ago' },
+        { type: 'peer',  result: 'win',  opponent: 'Knuckles',     score: '450 vs 290', payout: '4.75',  date: '1 week ago' },
+        { type: 'peer',  result: 'loss', opponent: 'The Reaper',   score: '388 vs 430', payout: '0',     date: '2 weeks ago' },
+      ],
+    },
+  };
+
+  /* ════════════════════════════════════════════
+     CARD BUILDERS
+  ════════════════════════════════════════════ */
+  function buildFighterCard(id, info, actions = '') {
+    const tier    = info.tier || 'Prospect';
+    const tk      = tierKey(tier);
+    const overall = Number(info.overall);
+    const fights  = Number(info.totalFights);
+    const wins    = Math.round(fights * 0.55);
+    const losses  = fights - wins;
+    const price   = parseFloat(fmt(info.price)).toFixed(0);
+    return `
+      <div class="fighter-card">
+        <div class="card-tier-bar bar-${tk}"></div>
+        <div class="card-silhouette">${getSilhouette(tier)}</div>
+        <div class="card-body">
+          <div class="card-top-row">
+            <span class="fighter-id-label">ID #${id}</span>
+            <span class="tier-badge badge-${tk}">${tier}</span>
+          </div>
+          <div class="card-overall-row">
+            <span class="overall-num">${overall}</span>
+            <span class="overall-label">OVR</span>
+          </div>
+          <div class="card-record">
+            <span class="wins">${wins}W</span> · <span class="losses">${losses}L</span> · ${fights} fights
+          </div>
+          <div class="card-price-row">
+            <span class="price-num">${price} YODA</span>
+            <span class="price-label">price</span>
+          </div>
+        </div>
+        ${actions ? `<div class="card-footer">${actions}</div>` : ''}
+      </div>`;
+  }
+
+  function buildOwnedCard(id, info, stats, actions = '') {
+    const tier    = info.tier || 'Prospect';
+    const tk      = tierKey(tier);
+    const overall = Number(info.overall);
+    const fights  = Number(info.totalFights);
+    const wins    = Math.round(fights * 0.55);
+    const losses  = fights - wins;
+    const earned  = parseFloat(fmt(info.totalEarnings)).toFixed(1);
+    const statKeys = ['striking','grappling','stamina','durability','strength','speed','counter'];
+    const bars = statKeys.map(k => `
+      <div class="stat-row">
+        <span class="stat-name">${k}</span>
+        <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${stats[k]}%"></div></div>
+        <span class="stat-num">${stats[k]}</span>
+      </div>`).join('');
+    return `
+      <div class="fighter-card">
+        <div class="card-tier-bar bar-${tk}"></div>
+        <div class="card-silhouette">${getSilhouette(tier)}</div>
+        <div class="card-body">
+          <div class="card-top-row">
+            <span class="fighter-id-label">ID #${id}</span>
+            <span class="tier-badge badge-${tk}">${tier}</span>
+          </div>
+          <div class="fighter-name">${stats.name}</div>
+          <div class="card-overall-row">
+            <span class="overall-num">${overall}</span>
+            <span class="overall-label">OVR</span>
+          </div>
+          <div class="card-record">
+            <span class="wins">${wins}W</span> · <span class="losses">${losses}L</span> · ${fights} fights · ${earned} YODA earned
+          </div>
+          <div class="stat-bars">${bars}</div>
+        </div>
+        ${actions ? `<div class="card-footer">${actions}</div>` : ''}
+      </div>`;
+  }
+
+  /* ════════════════════════════════════════════
+     INVENTORY
+  ════════════════════════════════════════════ */
+  async function loadInventory() {
+    if (!requireWallet('inventory-content')) return;
+    setLoading('inventory-content', 'Fetching inventory…');
+    try {
+      let fighters;
+      if (MOCK_MODE) {
+        fighters = MOCK.inventory;
+      } else {
+        const ids   = await state.fightchain.getInventory();
+        const infos = await Promise.all(ids.map(id => state.fightchain.getFighterInfo(id)));
+        fighters = ids.map((id, i) => ({ id: Number(id), info: infos[i] }));
+      }
+      if (!fighters.length) {
+        document.getElementById('inventory-content').innerHTML = `
+          <div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">NO FIGHTERS AVAILABLE</div><div class="empty-sub">The house inventory is empty</div></div>`;
+        return;
+      }
+      const cards = fighters.map(f => {
+        const btn = MOCK_MODE
+          ? `<button class="btn btn-primary btn-sm" onclick="toast('Mock mode — deploy contract first','warn')">Buy Fighter</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="buyFromInventory(${f.id},'${f.info.price}')">Buy Fighter</button>`;
+        return buildFighterCard(f.id, f.info, btn);
+      }).join('');
+      document.getElementById('inventory-content').innerHTML = `<div class="fighter-grid">${cards}</div>`;
+    } catch (err) {
+      document.getElementById('inventory-content').innerHTML = `<div class="info-box error">Failed to load: ${err.message || err}</div>`;
+    }
+  }
+
+  async function buyFromInventory(fighterId, priceWei) {
+    try {
+      await ensureAllowance(BigInt(priceWei));
+      await waitTx(state.fightchain.purchaseFromInventory(fighterId), `Fighter #${fighterId} purchased!`);
+      await refreshYodaBalance();
+      loadInventory();
+    } catch (_) {}
+  }
+
+  /* ════════════════════════════════════════════
+     MY FIGHTERS
+  ════════════════════════════════════════════ */
+  async function loadMyFighters() {
+    if (!requireWallet('my-fighters-content')) return;
+    setLoading('my-fighters-content', 'Loading your roster…');
+    try {
+      let fighters;
+      if (MOCK_MODE) {
+        fighters = MOCK.owned;
+      } else {
+        const ids = await state.fightchain.getFightersByOwner(state.userAddress);
+        if (!ids.length) {
+          document.getElementById('my-fighters-content').innerHTML = `
+            <div class="empty-state"><div class="empty-icon">🥊</div><div class="empty-title">NO FIGHTERS YET</div><div class="empty-sub">Head to Inventory to buy your first fighter</div></div>`;
+          return;
+        }
+        const [infos, stats] = await Promise.all([
+          Promise.all(ids.map(id => state.fightchain.getFighterInfo(id))),
+          Promise.all(ids.map(id => state.fightchain.getFighterStats(id))),
+        ]);
+        fighters = ids.map((id, i) => ({ id: Number(id), info: infos[i], stats: stats[i] }));
+      }
+      if (!fighters.length) {
+        document.getElementById('my-fighters-content').innerHTML = `
+          <div class="empty-state"><div class="empty-icon">🥊</div><div class="empty-title">NO FIGHTERS YET</div><div class="empty-sub">Head to Inventory to buy your first fighter</div></div>`;
+        return;
+      }
+      const cards = fighters.map(f => {
+        const actions = MOCK_MODE
+          ? `<button class="btn btn-gold btn-sm" onclick="toast('Mock mode','warn')">List for Sale</button>
+             <button class="btn btn-secondary btn-sm" onclick="toast('Mock mode','warn')">Post Challenge</button>
+             <button class="btn btn-secondary btn-sm" onclick="openFightHistory(${f.id}, '${f.stats.name}')">Fight History</button>`
+          : `<button class="btn btn-gold btn-sm" onclick="openListModal(${f.id})">List for Sale</button>
+             <button class="btn btn-secondary btn-sm" onclick="openPostChallengeModal(${f.id},'${f.stats.name}')">Post Challenge</button>
+             <button class="btn btn-secondary btn-sm" onclick="openFightHistory(${f.id}, '${f.stats.name}')">Fight History</button>`;
+        return buildOwnedCard(f.id, f.info, f.stats, actions);
+      }).join('');
+      document.getElementById('my-fighters-content').innerHTML = `<div class="fighter-grid">${cards}</div>`;
+    } catch (err) {
+      document.getElementById('my-fighters-content').innerHTML = `<div class="info-box error">Failed to load: ${err.message || err}</div>`;
+    }
+  }
+
+  function openListModal(fighterId) {
+    openModal('LIST FIGHTER #' + fighterId,
+      `<div class="form-group"><label class="form-label">Sale Price (YODA)</label>
+       <input class="form-input" type="number" id="list-price-input" min="1" step="1" placeholder="e.g. 10"/></div>
+       <div class="info-box">You receive 95% of sale price. 5% fee to the house.</div>`,
+      `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+       <button class="btn btn-gold" onclick="submitListing(${fighterId})">Confirm Listing</button>`);
+  }
+
+  async function submitListing(fighterId) {
+    const val = parseFloat(document.getElementById('list-price-input')?.value);
+    if (!val || val <= 0) { toast('Enter a valid price', 'warn'); return; }
+    closeModal();
+    try {
+      await waitTx(state.fightchain.listFighter(fighterId, parse(val)), `Fighter #${fighterId} listed for ${val} YODA`);
+      loadMyFighters();
+    } catch (_) {}
+  }
+
+  function openPostChallengeModal(fighterId, fighterName) {
+    openModal('POST CHALLENGE',
+      `<div class="info-box">Posting with <strong>#${fighterId} ${fighterName}</strong>. Any player can accept.</div>
+       <div class="form-group"><label class="form-label">Wager (YODA)</label>
+       <input class="form-input" type="number" id="challenge-wager-input" min="1" step="1" placeholder="e.g. 5"/></div>
+       <div class="info-box warn">Wager locked until accepted or cancelled. Winner gets 95%, 5% to house.</div>`,
+      `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+       <button class="btn btn-primary" onclick="submitChallenge(${fighterId})">Post Challenge</button>`);
+  }
+
+  async function submitChallenge(fighterId) {
+    const val = parseFloat(document.getElementById('challenge-wager-input')?.value);
+    if (!val || val <= 0) { toast('Enter a valid wager', 'warn'); return; }
+    closeModal();
+    try {
+      await ensureAllowance(parse(val));
+      await waitTx(state.fightchain.postChallenge(fighterId, parse(val)), `Challenge posted with ${val} YODA wager!`);
+      loadMyFighters();
+    } catch (_) {}
+  }
+
+  /* ════════════════════════════════════════════
+     MARKETPLACE
+  ════════════════════════════════════════════ */
+  async function loadMarketplace() {
+    if (!requireWallet('marketplace-content')) return;
+    setLoading('marketplace-content', 'Fetching listings…');
+    try {
+      let listings;
+      if (MOCK_MODE) {
+        listings = MOCK.listings;
+      } else {
+        const ids = await state.fightchain.getActiveListings();
+        if (!ids.length) {
+          document.getElementById('marketplace-content').innerHTML = `
+            <div class="empty-state"><div class="empty-icon">🏪</div><div class="empty-title">NO ACTIVE LISTINGS</div><div class="empty-sub">No fighters are listed for sale right now</div></div>`;
+          return;
+        }
+        const raw   = await Promise.all(ids.map(id => state.fightchain.listings(id)));
+        const infos = await Promise.all(raw.map(l => state.fightchain.getFighterInfo(l.fighterId)));
+        // Also fetch names — stats only work if caller owns the fighter, so we fall back gracefully
+        const names = await Promise.allSettled(raw.map(l => state.fightchain.getFighterStats(l.fighterId)));
+        listings = ids.map((id, i) => ({
+          listingId: Number(id),
+          fighterId: Number(raw[i].fighterId),
+          seller: raw[i].seller,
+          price: raw[i].price,
+          info: infos[i],
+          stats: names[i].status === 'fulfilled' ? names[i].value : { name: `Fighter #${Number(raw[i].fighterId)}` },
+        }));
+      }
+      if (!listings.length) {
+        document.getElementById('marketplace-content').innerHTML = `
+          <div class="empty-state"><div class="empty-icon">🏪</div><div class="empty-title">NO ACTIVE LISTINGS</div><div class="empty-sub">No fighters listed for sale right now</div></div>`;
+        return;
+      }
+      const rows = listings.map(l => {
+        const tk      = tierKey(l.info.tier);
+        const overall = Number(l.info.overall);
+        const fights  = Number(l.info.totalFights);
+        const wins    = Math.round(fights * 0.55);
+        const losses  = fights - wins;
+        const price   = parseFloat(fmt(l.price)).toFixed(0);
+        const earned  = parseFloat(fmt(l.info.totalEarnings)).toFixed(1);
+        const seller  = typeof l.seller === 'string' && l.seller.length > 10 ? shortAddr(l.seller) : l.seller;
+        const isMine  = state.userAddress && typeof l.seller === 'string' && l.seller.toLowerCase() === state.userAddress.toLowerCase();
+        const name    = l.stats?.name || `Fighter #${l.fighterId}`;
+        const actionBtn = MOCK_MODE
+          ? `<button class="btn btn-primary btn-sm" onclick="toast('Mock mode','warn')">Buy</button>`
+          : isMine
+            ? `<button class="btn btn-danger btn-sm" onclick="cancelListing(${l.listingId})">Cancel Listing</button>`
+            : `<button class="btn btn-primary btn-sm" onclick="buyListing(${l.listingId},'${l.price}')">Buy</button>`;
+        return `
+          <div class="fighter-card">
+            <div class="card-tier-bar bar-${tk}"></div>
+            <div class="card-silhouette">${getSilhouette(l.info.tier)}</div>
+            <div class="card-body">
+              <div class="card-top-row">
+                <span class="fighter-id-label">ID #${l.fighterId}</span>
+                <span class="tier-badge badge-${tk}">${l.info.tier}</span>
+              </div>
+              <div class="fighter-name">${name}</div>
+              <div class="card-overall-row">
+                <span class="overall-num">${overall}</span>
+                <span class="overall-label">OVR</span>
+              </div>
+              <div class="card-record">
+                <span class="wins">${wins}W</span> · <span class="losses">${losses}L</span> · ${fights} fights · ${earned} YODA earned
+              </div>
+              <div class="card-price-row">
+                <span class="price-num">${price} YODA</span>
+                <span class="price-label">asking price</span>
+              </div>
+              <div style="margin-top:8px;font-family:var(--font-body);font-size:11px;color:var(--text-faint);letter-spacing:0.5px;">
+                Seller: <span style="font-family:monospace;color:var(--text-dim)">${seller}</span>
+              </div>
+            </div>
+            <div class="card-footer">${actionBtn}</div>
+          </div>`;
+      }).join('');
+      document.getElementById('marketplace-content').innerHTML = `<div class="fighter-grid">${rows}</div>`;
+    } catch (err) {
+      document.getElementById('marketplace-content').innerHTML = `<div class="info-box error">Failed to load: ${err.message || err}</div>`;
+    }
+  }
+
+  async function buyListing(listingId, priceWei) {
+    try {
+      await ensureAllowance(BigInt(priceWei));
+      await waitTx(state.fightchain.buyFighter(listingId), 'Fighter purchased from marketplace!');
+      await refreshYodaBalance();
+      loadMarketplace();
+    } catch (_) {}
+  }
+
+  async function cancelListing(listingId) {
+    try {
+      await waitTx(state.fightchain.cancelListing(listingId), 'Listing cancelled');
+      loadMarketplace();
+    } catch (_) {}
+  }
+
+  /* ════════════════════════════════════════════
+     CHALLENGE BOARD
+  ════════════════════════════════════════════ */
+  async function loadChallenges() {
+    if (!requireWallet('challenges-content')) return;
+    setLoading('challenges-content', 'Loading challenges…');
+    try {
+      let challenges;
+      if (MOCK_MODE) {
+        challenges = MOCK.challenges;
+      } else {
+        const ids = await state.fightchain.getOpenChallenges();
+        if (!ids.length) {
+          document.getElementById('challenges-content').innerHTML = `
+            <div class="empty-state"><div class="empty-icon">⚔️</div><div class="empty-title">NO OPEN CHALLENGES</div><div class="empty-sub">Post one from My Fighters</div></div>`;
+          return;
+        }
+        const raw = await Promise.all(ids.map(id => state.fightchain.challenges(id)));
+        const infos = await Promise.all(raw.map(c => state.fightchain.getFighterInfo(c.challengerFighterId)));
+        challenges = ids.map((id, i) => ({
+          challengeId: Number(id),
+          challengerFighterId: Number(raw[i].challengerFighterId),
+          challengerOwner: raw[i].challengerOwner,
+          wager: raw[i].wager,
+          challengerTier: infos[i].tier,
+          challengerOverall: Number(infos[i].overall),
+        }));
+      }
+      if (!challenges.length) {
+        document.getElementById('challenges-content').innerHTML = `
+          <div class="empty-state"><div class="empty-icon">⚔️</div><div class="empty-title">NO OPEN CHALLENGES</div><div class="empty-sub">Post one from My Fighters</div></div>`;
+        return;
+      }
+      const rows = challenges.map(c => {
+        const tk     = tierKey(c.challengerTier);
+        const wager  = parseFloat(fmt(c.wager)).toFixed(0);
+        const owner  = typeof c.challengerOwner === 'string' && c.challengerOwner.length > 10 ? shortAddr(c.challengerOwner) : c.challengerOwner;
+        const isMine = state.userAddress && typeof c.challengerOwner === 'string' && c.challengerOwner.toLowerCase() === state.userAddress.toLowerCase();
+        const actionBtn = MOCK_MODE
+          ? `<button class="btn btn-primary btn-sm" onclick="toast('Mock mode','warn')">Accept</button>`
+          : isMine
+            ? `<button class="btn btn-danger btn-sm" onclick="cancelChallenge(${c.challengeId})">Cancel</button>`
+            : `<button class="btn btn-primary btn-sm" onclick="openAcceptChallengeModal(${c.challengeId},${c.wager})">Accept</button>`;
+        return `
+          <div class="data-row data-row-4">
+            <div>
+              <div class="dr-label">Challenge</div>
+              <div class="dr-value">Open Challenge #${c.challengeId}</div>
+            </div>
+            <div>
+              <div class="dr-label">Wager</div>
+              <div class="dr-value dr-value-gold">${wager} YODA</div>
+            </div>
+            <div>
+              <div class="dr-label">Total Pot</div>
+              <div class="dr-value dr-value-gold">${(parseFloat(wager)*2).toFixed(0)} YODA</div>
+            </div>
+            <div class="dr-actions">${actionBtn}</div>
+          </div>`;
+      }).join('');
+      document.getElementById('challenges-content').innerHTML = `<div class="row-list">${rows}</div>`;
+    } catch (err) {
+      document.getElementById('challenges-content').innerHTML = `<div class="info-box error">Failed to load: ${err.message || err}</div>`;
+    }
+  }
+
+async function openAcceptChallengeModal(challengeId, wagerWei) {
+  const wager = parseFloat(fmt(wagerWei)).toFixed(0);
+
+  // Show modal immediately with a loading state in the select
+  openModal('ACCEPT CHALLENGE',
+    `<div class="info-box warn">You must match the wager of <strong>${wager} YODA</strong>. Total pot: ${(parseFloat(wager)*2).toFixed(0)} YODA.</div>
+     <div class="form-group"><label class="form-label">Your Fighter</label>
+     <select class="form-select" id="accept-fighter-select"><option value="">Loading your fighters…</option></select></div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="submitAcceptChallenge(${challengeId},${wagerWei})">Accept & Fight</button>`);
+
+  if (MOCK_MODE) {
+    document.getElementById('accept-fighter-select').innerHTML =
+      MOCK.owned.map(f => `<option value="${f.id}">#${f.id} ${f.stats.name} (${Number(f.info.overall)} OVR)</option>`).join('');
+    return;
+  }
+
+  // Live mode — fetch owned fighters from contract
+  try {
+    const ids = await state.fightchain.getFightersByOwner(state.userAddress);
+    const select = document.getElementById('accept-fighter-select');
+    if (!select) return; // modal was closed before fetch finished
+    if (!ids.length) {
+      select.innerHTML = '<option value="">You have no fighters</option>';
+      return;
+    }
+    const [infos, stats] = await Promise.all([
+      Promise.all(ids.map(id => state.fightchain.getFighterInfo(id))),
+      Promise.all(ids.map(id => state.fightchain.getFighterStats(id))),
+    ]);
+    select.innerHTML = ids.map((id, i) =>
+      `<option value="${Number(id)}">#${Number(id)} ${stats[i].name} (${Number(infos[i].overall)} OVR)</option>`
+    ).join('');
+  } catch (err) {
+    const select = document.getElementById('accept-fighter-select');
+    if (select) select.innerHTML = '<option value="">Failed to load fighters</option>';
+    toast('Could not load your fighters', 'warn');
+  }
+}
+
+  async function submitAcceptChallenge(challengeId, wagerWei) {
+    const fighterId = parseInt(document.getElementById('accept-fighter-select')?.value);
+    if (!fighterId) { toast('Select a fighter', 'warn'); return; }
+    closeModal();
+    if (MOCK_MODE) {
+      const pf = MOCK.owned.find(f => f.id === fighterId) || MOCK.owned[0];
+      const cf = MOCK.challenges[0];
+      startFightAnimation({
+        leftName:     pf.stats.name,
+        leftTier:     pf.info.tier,
+        rightName:    'Challenger',
+        rightTier:    cf.challengerTier,
+        leftScore:    Number(pf.info.overall) + Math.floor(Math.random()*10),
+        rightScore:   cf.challengerOverall    + Math.floor(Math.random()*10),
+        winnerIsLeft: Math.random() > 0.5,
+        payout:       (parseFloat(fmt(wagerWei)) * 1.9).toFixed(2),
+      });
+      return;
+    }
+    try {
+      await ensureAllowance(BigInt(wagerWei));
+      toast('Fight submitted…', 'warn', 12000);
+      const tx      = await state.fightchain.acceptChallenge(challengeId, fighterId);
+      const receipt = await tx.wait();
+      const iface   = state.fightchain.interface;
+      let fought    = false;
+      for (const log of receipt.logs) {
+        try {
+          const parsed = iface.parseLog(log);
+          if (parsed.name === 'DuelResolved') {
+            const myAddr      = state.userAddress.toLowerCase();
+            const winnerIsMe  = parsed.args.winner.toLowerCase() === myAddr;
+            const wagerPaid   = parseFloat(fmt(parsed.args.wagerPaid)).toFixed(2);
+            const [mInfo, mStats] = await Promise.all([
+              state.fightchain.getFighterInfo(fighterId),
+              state.fightchain.getFighterStats(fighterId),
+            ]);
+            startFightAnimation({
+              leftName:     mStats.name,
+              leftTier:     mInfo.tier,
+              rightName:    'Challenger',
+              rightTier:    'contender',
+              leftScore:    Number(parsed.args.opponentScore),
+              rightScore:   Number(parsed.args.challengerScore),
+              winnerIsLeft: winnerIsMe,
+              payout:       winnerIsMe ? wagerPaid : '0',
+            });
+            fought = true;
+            break;
+          }
+        } catch (_) {}
+      }
+      if (!fought) toast('Duel resolved!', 'success');
+      await refreshYodaBalance();
+      loadChallenges();
+    } catch (err) {
+      toast((err?.reason || err?.shortMessage || err?.message || 'Failed').slice(0,140));
+    }
+  }
+
+  async function cancelChallenge(challengeId) {
+    try {
+      await waitTx(state.fightchain.cancelChallenge(challengeId), 'Challenge cancelled, wager refunded');
+      loadChallenges();
+    } catch (_) {}
+  }
+
+  /* ── Post challenge from Challenge Board ── */
+  document.getElementById('btn-post-challenge-open').addEventListener('click', () => {
+    if (!state.userAddress && !MOCK_MODE) { toast('Connect wallet first'); return; }
+    const opts = MOCK_MODE
+      ? MOCK.owned.map(f => `<option value="${f.id}">#${f.id} ${f.stats.name} (${Number(f.info.overall)} OVR)</option>`).join('')
+      : '<option value="">Loading…</option>';
+    openModal('POST CHALLENGE',
+      `<div class="form-group"><label class="form-label">Your Fighter</label>
+       <select class="form-select" id="post-fighter-select">${opts}</select></div>
+       <div class="form-group"><label class="form-label">Wager (YODA)</label>
+       <input class="form-input" type="number" id="post-wager-input" min="1" step="1" placeholder="e.g. 5"/></div>
+       <div class="info-box warn">Wager is locked until the challenge is accepted or you cancel it.</div>`,
+      `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+       <button class="btn btn-primary" onclick="submitPostChallenge()">Post Challenge</button>`);
+  });
+
+  async function submitPostChallenge() {
+    const fighterId = parseInt(document.getElementById('post-fighter-select')?.value);
+    const val       = parseFloat(document.getElementById('post-wager-input')?.value);
+    if (!fighterId) { toast('Select a fighter', 'warn'); return; }
+    if (!val || val <= 0) { toast('Enter a valid wager', 'warn'); return; }
+    if (MOCK_MODE) { closeModal(); toast('Mock mode — deploy contract first', 'warn'); return; }
+    closeModal();
+    try {
+      await ensureAllowance(parse(val));
+      await waitTx(state.fightchain.postChallenge(fighterId, parse(val)), `Challenge posted with ${val} YODA wager!`);
+      loadChallenges();
+    } catch (_) {}
+  }
+
+  /* ════════════════════════════════════════════
+     HOUSE FIGHTERS
+  ════════════════════════════════════════════ */
+  async function loadHouse() {
+    if (!requireWallet('house-content')) return;
+    setLoading('house-content', 'Loading house fighters…');
+    try {
+      let houseFighters, reserveAmt;
+      if (MOCK_MODE) {
+        houseFighters = MOCK.houseFighters;
+        reserveAmt    = MOCK.houseReserve;
+      } else {
+        const ids     = await state.fightchain.getHouseFighters();
+        const infos   = await Promise.all(ids.map(id => state.fightchain.getFighterInfo(id)));
+        const reserve = await state.fightchain.houseReserve();
+        houseFighters = ids.map((id, i) => ({ id: Number(id), info: infos[i] }));
+        reserveAmt    = parseFloat(fmt(reserve)).toFixed(2);
+      }
+
+      const reserveBar = `
+        <div class="info-box success" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <span>House Reserve</span>
+          <strong style="color:var(--gold);font-family:var(--font-display);font-size:20px;letter-spacing:1px">${reserveAmt} YODA</strong>
+        </div>`;
+
+      const rows = houseFighters.map(f => {
+        const tk      = tierKey(f.info.tier);
+        const overall = Number(f.info.overall);
+        const fights  = Number(f.info.totalFights);
+        const actionBtn = MOCK_MODE
+          ? `<button class="btn btn-primary btn-sm" onclick="openHouseChallengeModal(${f.id}, ${overall})">Challenge</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="openHouseChallengeModal(${f.id}, ${overall})">Challenge</button>`;
+        const bracketLabel = getBracketLabel(overall);
+        return `
+          <div class="data-row data-row-4">
+            <div>
+              <div class="dr-label">Bracket</div>
+              <div class="dr-value dr-value-red">${bracketLabel} OVR</div>
+              <div class="dr-value-dim" style="font-size:11px;margin-top:2px">Stats hidden until fight</div>
+            </div>
+            <div>
+              <div class="dr-label">Payout</div>
+              <div class="dr-value dr-value-gold">Win = wager × 1.9</div>
+            </div>
+            <div>
+              <div class="dr-label">Reserve</div>
+              <div class="dr-value-dim" style="font-size:12px">${reserveAmt} YODA available</div>
+            </div>
+            <div class="dr-actions">${actionBtn}</div>
+          </div>`;
+      }).join('');
+
+      document.getElementById('house-content').innerHTML = reserveBar + `<div class="row-list">${rows}</div>`;
+    } catch (err) {
+      document.getElementById('house-content').innerHTML = `<div class="info-box error">Failed to load: ${err.message || err}</div>`;
+    }
+  }
+
+  function openHouseChallengeModal(houseFighterId, houseOverall) {
+    const eligibleMock = MOCK.owned.filter(f =>
+      getBracketMin(Number(f.info.overall)) <= houseOverall
+    );
+    const opts = MOCK_MODE
+      ? eligibleMock.length
+        ? eligibleMock.map(f => `<option value="${f.id}">#${f.id} ${f.stats.name} (${Number(f.info.overall)} OVR)</option>`).join('')
+        : '<option value="">No eligible fighters for this bracket</option>'
+      : '<option value="">Loading…</option>';
+    openModal('CHALLENGE ' + getBracketLabel(houseOverall) + ' HOUSE FIGHTER',
+      `<div class="info-box warn">Only fighters rated <strong>${getBracketLabel(houseOverall)}</strong> or higher can enter this bracket.</div>
+       <div class="form-group">
+         <label class="form-label">Select Your Fighter</label>
+         <div style="font-family:var(--font-body);font-size:12px;color:var(--text-dim);margin-bottom:6px;">Choose which fighter from your roster will enter this fight</div>
+         <select class="form-select" id="house-fighter-select" style="font-size:15px;padding:12px 14px;">${opts}</select>
+       </div>
+       <div class="form-group">
+         <label class="form-label">Wager Amount (YODA)</label>
+         <input class="form-input" type="number" id="house-wager-input" min="1" step="1" placeholder="e.g. 5" style="font-size:15px;padding:12px 14px;"/>
+       </div>
+       <div class="info-box warn">If you win, payout comes from the house reserve. Resolves instantly.</div>`,
+      `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+       <button class="btn btn-primary" onclick="submitHouseChallenge(${houseFighterId})">Fight!</button>`);
+  }
+
+  async function submitHouseChallenge(houseFighterId) {
+    const playerFighterId = parseInt(document.getElementById('house-fighter-select')?.value);
+    const val             = parseFloat(document.getElementById('house-wager-input')?.value);
+    if (!playerFighterId) { toast('Select a fighter', 'warn'); return; }
+    if (!val || val <= 0)  { toast('Enter a valid wager', 'warn'); return; }
+    if (MOCK_MODE) {
+      closeModal();
+      // Mock fight — use first owned fighter vs first house fighter
+      const pf = MOCK.owned.find(f => f.id === playerFighterId) || MOCK.owned[0];
+      const hf = MOCK.houseFighters[0];
+      startFightAnimation({
+        leftName:     pf.stats.name,
+        leftTier:     pf.info.tier,
+        rightName:    'House Fighter',
+        rightTier:    hf.info.tier,
+        leftScore:    Number(pf.info.overall) + Math.floor(Math.random()*10),
+        rightScore:   Number(hf.info.overall) + Math.floor(Math.random()*10),
+        winnerIsLeft: Math.random() > 0.45,
+        payout:       (val * 1.9).toFixed(2),
+      });
+      return;
+    }
+    closeModal();
+    try {
+      await ensureAllowance(parse(val));
+      toast('Fight submitted…', 'warn', 12000);
+      const tx      = await state.fightchain.challengeHouse(playerFighterId, houseFighterId, parse(val));
+      const receipt = await tx.wait();
+      // Parse HouseChallengeResolved event
+      const iface   = state.fightchain.interface;
+      let fought    = false;
+      for (const log of receipt.logs) {
+        try {
+          const parsed = iface.parseLog(log);
+          if (parsed.name === 'HouseChallengeResolved') {
+            const playerWon = parsed.args.playerWon;
+            const payout    = parseFloat(fmt(parsed.args.payout)).toFixed(2);
+            const [pInfo, pStats, hInfo] = await Promise.all([
+              state.fightchain.getFighterInfo(playerFighterId),
+              state.fightchain.getFighterStats(playerFighterId),
+              state.fightchain.getFighterInfo(houseFighterId),
+            ]);
+            startFightAnimation({
+              leftName:     pStats.name,
+              leftTier:     pInfo.tier,
+              rightName:    'House Fighter',
+              rightTier:    hInfo.tier,
+              leftScore:    playerWon ? 70 + Math.random()*20 : 40 + Math.random()*20,
+              rightScore:   playerWon ? 40 + Math.random()*20 : 70 + Math.random()*20,
+              winnerIsLeft: playerWon,
+              payout:       playerWon ? payout : '0',
+            });
+            fought = true;
+            break;
+          }
+        } catch (_) {}
+      }
+      if (!fought) toast('Fight resolved!', 'success');
+      await refreshYodaBalance();
+      loadHouse();
+    } catch (err) {
+      toast((err?.reason || err?.shortMessage || err?.message || 'Failed').slice(0,140));
+    }
+  }
+
+  /* ════════════════════════════════════════════
+     OWNER PANEL
+  ════════════════════════════════════════════ */
+  async function loadOwner() {
+    if (!state.isOwner && !MOCK_MODE) {
+      document.getElementById('owner-content').innerHTML = `
+        <div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">ACCESS DENIED</div><div class="empty-sub">Only the contract owner can access this panel</div></div>`;
+      return;
+    }
+    document.getElementById('owner-content').innerHTML = `
+      <div class="owner-grid">
+
+        <div class="owner-panel">
+          <div class="owner-panel-title">Mint to Inventory</div>
+          <div class="form-group">
+            <label class="form-label">Fighter Name</label>
+            <input class="form-input" type="text" id="mint-name-input" placeholder="e.g. Iron Mike"/>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="submitMint()">Mint Fighter</button>
+        </div>
+
+        <div class="owner-panel">
+          <div class="owner-panel-title">Batch Mint (max 20)</div>
+          <div class="form-group">
+            <label class="form-label">Names — one per line</label>
+            <textarea class="form-input" id="batch-names-input" rows="5" placeholder="Iron Mike&#10;Snake Eyes&#10;Ghost" style="resize:vertical"></textarea>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="submitBatchMint()">Batch Mint</button>
+        </div>
+
+        <div class="owner-panel">
+          <div class="owner-panel-title">Mint House Fighter</div>
+          <div class="form-group">
+            <label class="form-label">Fighter Name</label>
+            <input class="form-input" type="text" id="house-mint-name-input" placeholder="e.g. The Guardian"/>
+          </div>
+          <button class="btn btn-green btn-sm" onclick="submitMintHouse()">Mint House Fighter</button>
+        </div>
+
+        <div class="owner-panel">
+          <div class="owner-panel-title">Fund House Reserve</div>
+          <div class="form-group">
+            <label class="form-label">Amount (YODA)</label>
+            <input class="form-input" type="number" id="fund-reserve-input" min="1" step="1" placeholder="e.g. 500"/>
+          </div>
+          <button class="btn btn-gold btn-sm" onclick="submitFundReserve()">Fund Reserve</button>
+        </div>
+
+      </div>`;
+  }
+
+  async function submitMint() {
+    const name = document.getElementById('mint-name-input')?.value?.trim();
+    if (!name) { toast('Enter a name', 'warn'); return; }
+    if (MOCK_MODE) { toast('Mock mode — deploy contract first', 'warn'); return; }
+    try {
+      await waitTx(state.fightchain.mintToInventory(name), `${name} minted to inventory!`);
+      document.getElementById('mint-name-input').value = '';
+    } catch (_) {}
+  }
+
+  async function submitBatchMint() {
+    const raw = document.getElementById('batch-names-input')?.value || '';
+    const names = raw.split('\n').map(n => n.trim()).filter(Boolean);
+    if (!names.length) { toast('Enter at least one name', 'warn'); return; }
+    if (names.length > 20) { toast('Max 20 fighters per batch', 'warn'); return; }
+    if (MOCK_MODE) { toast('Mock mode — deploy contract first', 'warn'); return; }
+    try {
+      await waitTx(state.fightchain.mintBatch(names), `${names.length} fighters minted!`);
+      document.getElementById('batch-names-input').value = '';
+    } catch (_) {}
+  }
+
+  async function submitMintHouse() {
+    const name = document.getElementById('house-mint-name-input')?.value?.trim();
+    if (!name) { toast('Enter a name', 'warn'); return; }
+    if (MOCK_MODE) { toast('Mock mode — deploy contract first', 'warn'); return; }
+    try {
+      await waitTx(state.fightchain.mintHouseFighter(name), `${name} minted as house fighter!`);
+      document.getElementById('house-mint-name-input').value = '';
+    } catch (_) {}
+  }
+
+  async function submitFundReserve() {
+    const val = parseFloat(document.getElementById('fund-reserve-input')?.value);
+    if (!val || val <= 0) { toast('Enter a valid amount', 'warn'); return; }
+    if (MOCK_MODE) { toast('Mock mode — deploy contract first', 'warn'); return; }
+    try {
+      await ensureAllowance(parse(val));
+      await waitTx(state.fightchain.fundHouseReserve(parse(val)), `House reserve funded with ${val} YODA!`);
+      await refreshYodaBalance();
+      document.getElementById('fund-reserve-input').value = '';
+    } catch (_) {}
+  }
+
+  /* ════════════════════════════════════════════
+     FIGHT HISTORY
+  ════════════════════════════════════════════ */
+  async function openFightHistory(fighterId, fighterName) {
+    openModal(
+      fighterName.toUpperCase() + ' — FIGHT HISTORY',
+      `<div class="loading-row"><div class="spinner"></div> Loading fight history…</div>`,
+      `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`
+    );
+
+    try {
+      let rows = '';
+
+      if (MOCK_MODE) {
+        const history = MOCK.fightHistory[fighterId] || [];
+        if (!history.length) {
+          rows = `<div class="history-empty">No fights on record yet</div>`;
+        } else {
+          rows = history.map(h => `
+            <div class="history-row ${h.result}">
+              <div class="history-result ${h.result}">${h.result === 'win' ? 'WIN' : 'LOSS'}</div>
+              <div>
+                <div class="history-opponent">${h.opponent}</div>
+                <div class="history-type">${h.type === 'house' ? 'House Fight' : 'Peer Fight'}</div>
+              </div>
+              <div class="history-score">${h.score}</div>
+              <div>
+                <div class="history-payout ${h.result === 'win' ? 'earned' : 'lost'}">
+                  ${h.result === 'win' ? '+' + h.payout + ' YODA' : '—'}
+                </div>
+                <div class="history-date">${h.date}</div>
+              </div>
+            </div>`).join('');
+        }
+      } else {
+        // Query DuelResolved events where this fighter was involved
+        const fc = state.fightchain;
+        const filter1 = fc.filters.DuelResolved();
+        const filter2 = fc.filters.HouseChallengeResolved();
+
+        const [duelLogs, houseLogs] = await Promise.all([
+          fc.queryFilter(filter1, -50000),
+          fc.queryFilter(filter2, -50000),
+        ]);
+
+        // Parse challenge data to find fights involving this fighter
+        const historyItems = [];
+
+        for (const log of duelLogs) {
+          try {
+            const challengeId = Number(log.args.challengeId);
+            const c = await fc.challenges(challengeId);
+            const involvedFighters = [Number(c.challengerFighterId), Number(c.opponentFighterId)];
+            if (!involvedFighters.includes(fighterId)) continue;
+
+            const myAddr    = state.userAddress.toLowerCase();
+            const iWon      = log.args.winner.toLowerCase() === myAddr;
+            const opponentFighterId = Number(c.challengerFighterId) === fighterId
+              ? Number(c.opponentFighterId)
+              : Number(c.challengerFighterId);
+
+            let opponentName = `Fighter #${opponentFighterId}`;
+            try { opponentName = await fc.getFighterName(opponentFighterId); } catch (_) {}
+
+            const chalScore = Number(log.args.challengerScore);
+            const oppScore  = Number(log.args.opponentScore);
+            const payout    = iWon ? parseFloat(fmt(log.args.wagerPaid)).toFixed(2) : '0';
+            const block     = await log.getBlock();
+            const date      = new Date(block.timestamp * 1000).toLocaleDateString();
+
+            historyItems.push({ result: iWon ? 'win' : 'loss', opponent: opponentName, type: 'peer', score: `${chalScore} vs ${oppScore}`, payout, date });
+          } catch (_) {}
+        }
+
+        for (const log of houseLogs) {
+          try {
+            const challengeId = Number(log.args.challengeId);
+            const c = await fc.challenges(challengeId);
+            if (Number(c.challengerFighterId) !== fighterId) continue;
+
+            const playerWon = log.args.playerWon;
+            const payout    = playerWon ? parseFloat(fmt(log.args.payout)).toFixed(2) : '0';
+            const block     = await log.getBlock();
+            const date      = new Date(block.timestamp * 1000).toLocaleDateString();
+
+            historyItems.push({ result: playerWon ? 'win' : 'loss', opponent: 'House Fighter', type: 'house', score: '—', payout, date });
+          } catch (_) {}
+        }
+
+        // Sort newest first
+        historyItems.reverse();
+
+        if (!historyItems.length) {
+          rows = `<div class="history-empty">No fights on record yet</div>`;
+        } else {
+          rows = historyItems.map(h => `
+            <div class="history-row ${h.result}">
+              <div class="history-result ${h.result}">${h.result === 'win' ? 'WIN' : 'LOSS'}</div>
+              <div>
+                <div class="history-opponent">${h.opponent}</div>
+                <div class="history-type">${h.type === 'house' ? 'House Fight' : 'Peer Fight'}</div>
+              </div>
+              <div class="history-score">${h.score}</div>
+              <div>
+                <div class="history-payout ${h.result === 'win' ? 'earned' : 'lost'}">
+                  ${h.result === 'win' ? '+' + h.payout + ' YODA' : '—'}
+                </div>
+                <div class="history-date">${h.date}</div>
+              </div>
+            </div>`).join('');
+        }
+      }
+
+      // Update modal body with results
+      document.getElementById('modal-body').innerHTML = `<div class="history-list">${rows}</div>`;
+
+    } catch (err) {
+      document.getElementById('modal-body').innerHTML = `<div class="info-box error">Failed to load history: ${err.message || err}</div>`;
+    }
+  }
+
+  /* ── REFRESH BUTTONS ── */
+  document.getElementById('btn-refresh-inventory').addEventListener('click', loadInventory);
+  document.getElementById('btn-refresh-my').addEventListener('click',        loadMyFighters);
+  document.getElementById('btn-refresh-market').addEventListener('click',    loadMarketplace);
+  document.getElementById('btn-refresh-house').addEventListener('click',     loadHouse);
+
+  /* ════════════════════════════════════════════
+     FIGHT ARENA ENGINE
+  ════════════════════════════════════════════ */
+
+const ARENA_TIER_COLORS = {
+    prospect:  '#3d9e6a',
+    contender: '#3878d4',
+    elite:     '#8b5cf6',
+    champion:  '#e8a820',
+    legendary: '#f25555',
+  };
+
+function makeArenaFighter(color, facingRight) {
+    const sx = facingRight ? 1 : -1;
+    return `<svg class="arena-silhouette" viewBox="0 0 100 200" fill="${color}" overflow="visible" style="color:${color}; transform:scaleX(${sx}); transform-origin:center;">
+      <!-- head -->
+      <ellipse cx="50" cy="20" rx="18" ry="20"/>
+      <!-- torso — directly connected to head, no gap -->
+      <rect x="28" y="38" width="44" height="62" rx="10"/>
+      <!-- left arm -->
+      <rect x="10" y="42" width="16" height="46" rx="8"/>
+      <!-- right arm -->
+      <rect x="74" y="42" width="16" height="46" rx="8"/>
+      <!-- left leg -->
+      <rect x="29" y="98" width="18" height="62" rx="9" transform="rotate(-4 38 129)"/>
+      <!-- right leg -->
+      <rect x="53" y="98" width="18" height="62" rx="9" transform="rotate(4 62 129)"/>
+    </svg>`;
+  }
+
+  const KO_WORDS  = ['K.O.!', 'OUT COLD!', 'FINISH!'];
+
+  let arenaRunning = false;
+
+  // Main entry point — call this after a fight resolves
+  // params: { leftName, leftTier, rightName, rightTier, leftScore, rightScore, winnerIsLeft, payout }
+  function startFightAnimation(params) {
+    if (arenaRunning) return;
+    arenaRunning = true;
+
+    const {
+      leftName, leftTier, rightName, rightTier,
+      leftScore, rightScore, winnerIsLeft, payout
+    } = params;
+
+    // Set silhouettes
+// Set silhouettes — left fighter faces right, right fighter faces left
+    const leftColor  = ARENA_TIER_COLORS[tierKey(leftTier)]  || ARENA_TIER_COLORS.prospect;
+    const rightColor = ARENA_TIER_COLORS[tierKey(rightTier)] || ARENA_TIER_COLORS.prospect;
+    document.getElementById('arena-sil-left').innerHTML  = makeArenaFighter(leftColor, true);
+    document.getElementById('arena-sil-right').innerHTML = makeArenaFighter(rightColor, false);
+
+    // Set names
+    document.getElementById('hud-name-left').textContent  = leftName;
+    document.getElementById('hud-name-right').textContent = rightName;
+
+    // Reset bars
+    setBar('left',  100);
+    setBar('right', 100);
+
+    // Reset result
+    document.getElementById('arena-result').classList.remove('open');
+    document.getElementById('arena-countdown').innerHTML = '';
+
+    // Open arena
+    document.getElementById('fight-arena').classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    // Run countdown then fight
+    runCountdown().then(() => {
+      runFight(leftScore, rightScore, winnerIsLeft, leftName, rightName, payout);
+    });
+  }
+
+  function setBar(side, pct) {
+    const el = document.getElementById('hud-bar-' + side);
+    const hp = document.getElementById('hud-hp-' + side);
+    const clamped = Math.max(0, Math.min(100, pct));
+    el.style.width = clamped + '%';
+    hp.textContent = Math.round(clamped) + '%';
+
+    // colour shift: green → yellow → red
+    if (clamped > 50) {
+      el.style.background = `linear-gradient(90deg, #16a34a, #22c55e)`;
+    } else if (clamped > 25) {
+      el.style.background = `linear-gradient(90deg, #ca8a04, #eab308)`;
+    } else {
+      el.style.background = `linear-gradient(90deg, #b91c1c, #e03535)`;
+    }
+  }
+
+  function runCountdown() {
+    return new Promise(resolve => {
+      const el = document.getElementById('arena-countdown');
+      const steps = ['3', '2', '1', 'FIGHT!'];
+      let i = 0;
+
+      function nextStep() {
+        if (i >= steps.length) { el.innerHTML = ''; resolve(); return; }
+        const isFight = steps[i] === 'FIGHT!';
+        el.innerHTML = `<div class="${isFight ? 'countdown-fight' : 'countdown-num'}">${steps[i]}</div>`;
+        i++;
+        setTimeout(nextStep, isFight ? 900 : 800);
+      }
+      nextStep();
+    });
+  }
+
+  function runFight(leftScore, rightScore, winnerIsLeft, leftName, rightName, payout) {
+    // Total score determines how lopsided the fight is
+    const total     = leftScore + rightScore;
+    const leftRatio = leftScore / total;  // how much damage left deals
+
+    // Build hit sequence — loser takes more damage overall
+    // We simulate ~20–30 exchanges
+    const exchanges = 24 + Math.floor(Math.random() * 8);
+    let leftHp  = 100;
+    let rightHp = 100;
+    const sequence = [];
+
+    for (let i = 0; i < exchanges; i++) {
+      // Attacker is weighted by scores but with randomness
+      const leftAttacks = Math.random() < leftRatio;
+      const baseDmg = 3 + Math.random() * 5;
+
+      // Scale damage so winner finishes with bar at ~0 and loser at 20–40%
+      const dmgMultiplier = leftAttacks
+        ? (winnerIsLeft ? 1.4 : 0.7)
+        : (winnerIsLeft ? 0.7 : 1.4);
+
+      const dmg = baseDmg * dmgMultiplier;
+
+      sequence.push({ leftAttacks, dmg });
+
+      if (leftAttacks) rightHp -= dmg;
+      else             leftHp  -= dmg;
+    }
+
+    // Force winner to have more HP left and loser to zero
+    const loserSide = winnerIsLeft ? 'right' : 'left';
+    // Add a few final heavy hits to finish the loser
+    for (let k = 0; k < 4; k++) {
+      sequence.push({ leftAttacks: winnerIsLeft, dmg: 8 + Math.random() * 6 });
+    }
+
+    // Replay sequence with delays
+    let lHp = 100, rHp = 100;
+    let idx  = 0;
+
+    function playNext() {
+      if (idx >= sequence.length) {
+        // Fight over — show KO
+        setTimeout(() => showResult(winnerIsLeft, leftName, rightName, payout), 400);
+        return;
+      }
+
+      const { leftAttacks, dmg } = sequence[idx];
+      idx++;
+
+      const attackerEl  = document.getElementById(leftAttacks ? 'arena-fighter-left'  : 'arena-fighter-right');
+      const defenderEl  = document.getElementById(leftAttacks ? 'arena-fighter-right' : 'arena-fighter-left');
+      const defenderBar = leftAttacks ? 'right' : 'left';
+
+      // Attacker lunges
+      attackerEl.classList.add('attacking');
+      setTimeout(() => attackerEl.classList.remove('attacking'), 440);
+
+      // Defender takes hit
+      setTimeout(() => {
+        defenderEl.classList.add('taking-hit');
+        setTimeout(() => defenderEl.classList.remove('taking-hit'), 420);
+
+        // Update HP
+        if (leftAttacks) { rHp = Math.max(0, rHp - dmg); setBar('right', rHp); }
+        else             { lHp = Math.max(0, lHp - dmg); setBar('left',  lHp); }
+
+        // Flash + hit text
+        flashArena();
+
+        // Screen shake on big hits
+        if (dmg > 11) shakeArena();
+
+        // Bar hit animation
+        document.getElementById('hud-bar-' + defenderBar).classList.add('hit');
+        setTimeout(() => document.getElementById('hud-bar-' + defenderBar).classList.remove('hit'), 140);
+
+        // If either bar is at 0 mid-sequence, end early
+        if (lHp <= 0 || rHp <= 0) {
+          setBar('left',  Math.max(0, lHp));
+          setBar('right', Math.max(0, rHp));
+          setTimeout(() => showResult(winnerIsLeft, leftName, rightName, payout), 500);
+          return;
+        }
+
+        // Next hit — vary speed for rhythm
+        // Next hit — slower, more natural rhythm
+        const delay = 420 + Math.random() * 320;
+        setTimeout(playNext, delay);
+      }, 140);
+    }
+
+    document.getElementById('hud-round').textContent = 'ROUND 1';
+    playNext();
+  }
+
+  function flashArena() {
+    const el = document.getElementById('arena-flash');
+    el.classList.remove('pop');
+    void el.offsetWidth; // reflow
+    el.classList.add('pop');
+  }
+
+  function shakeArena() {
+    const el = document.getElementById('fight-arena');
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+  }
+
+
+  function showResult(winnerIsLeft, leftName, rightName, payout) {
+    const winnerName = winnerIsLeft ? leftName : rightName;
+    const koText     = KO_WORDS[Math.floor(Math.random() * KO_WORDS.length)];
+
+    // Drain loser bar to 0
+    setBar(winnerIsLeft ? 'right' : 'left', 0);
+
+    document.getElementById('result-ko-text').textContent     = koText;
+    document.getElementById('result-winner-text').textContent = winnerName + ' WINS';
+    document.getElementById('result-payout-text').innerHTML   = payout
+      ? `Payout: <span>${payout} YODA</span>`
+      : '';
+
+    document.getElementById('arena-result').classList.add('open');
+  }
+
+  function closeArena() {
+    document.getElementById('fight-arena').classList.remove('open');
+    document.getElementById('arena-result').classList.remove('open');
+    document.body.style.overflow = '';
+    arenaRunning = false;
+    // Refresh balance after real fight
+    refreshYodaBalance();
+  }
+
+  // Patch switchTab to update preview button
+  const _origSwitchTab = switchTab;
+  // override — wrap original
+  navTabs.forEach(t => t.removeEventListener('click', () => {}));
+  navTabs.forEach(t => t.addEventListener('click', () => {
+    updatePreviewBtn(t.dataset.tab);
+  }));
+
+  /* ── BOOT ── */
+  loadInventory();
+  </script>
+</body>
+</html>
